@@ -9,18 +9,18 @@ from sklearn.metrics import r2_score, mean_squared_error
 # Load dataset
 df = pd.read_csv("../dataset/crop_yield.csv")
 
-# Encode categorical columns
+# Encode categorical features
 area_encoder = LabelEncoder()
 item_encoder = LabelEncoder()
 
 df["Area"] = area_encoder.fit_transform(df["Area"])
 df["Item"] = item_encoder.fit_transform(df["Item"])
 
-# Features and target
-X = df.drop("Yield", axis=1)
-y = df["Yield"]
+# Features and Target
+X = df.drop("hg/ha_yield", axis=1)
+y = df["hg/ha_yield"]
 
-# Train-Test Split
+# Split data
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
@@ -32,7 +32,8 @@ models = {
     "Random Forest": RandomForestRegressor(random_state=42)
 }
 
-print("\nMODEL EVALUATION RESULTS")
+print("=" * 50)
+print("MODEL EVALUATION RESULTS")
 print("=" * 50)
 
 for name, model in models.items():
