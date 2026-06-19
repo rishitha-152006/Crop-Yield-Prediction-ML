@@ -2,54 +2,77 @@ import pandas as pd
 import joblib
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import r2_score, mean_absolute_error
 
-# Load dataset
-df = pd.read_csv("../dataset/crop_yield.csv")
+# Load Dataset
+df = pd.read_csv("data/crop_yield.csv")
 
-# Encode categorical columns
-area_encoder = LabelEncoder()
-item_encoder = LabelEncoder()
-
-df["Area"] = area_encoder.fit_transform(df["Area"])
-df["Item"] = item_encoder.fit_transform(df["Item"])
+print("Dataset Shape:", df.shape)
+print(df.head())
 
 # Features and Target
 X = df.drop("hg/ha_yield", axis=1)
 y = df["hg/ha_yield"]
 
-# Split dataset
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+# Categorical and Numerical Columns
+categorical_features = ["Area", "Item"]
+
+numerical_features = [
+    "Year",
+    "average_rain_fall_mm_per_year",
+    "pesticides_tonnes",
+    "avg_temp"
+]
+
+# Preprocessing
+preprocessor = ColumnTransformer(
+    transformers=[
+        (
+            "cat",
+            OneHotEncoder(handle_unknown="ignore"),
+            categorical_features
+        )
+    ],
+    remainder="passthrough"
 )
 
-# Train Model
+# Random Forest Model
 model = RandomForestRegressor(
-    n_estimators=100,
+    n_estimators=200,
     random_state=42
 )
 
-model.fit(X_train, y_train)
+pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("model", model)
+])
 
-# Predictions
-predictions = model.predict(X_test)
+# Train Test Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
 
-# Accuracy
+# Training
+pipeline.fit(X_train, y_train)
+
+# Prediction
+predictions = pipeline.predict(X_test)
+
+# Evaluation
 r2 = r2_score(y_test, predictions)
+mae = mean_absolute_error(y_test, predictions)
 
-print("=" * 50)
-print("MODEL TRAINING COMPLETED")
-print("=" * 50)
-print(f"R² Score: {r2:.4f}")
+print(f"R2 Score: {r2:.4f}")
+print(f"MAE: {mae:.4f}")
 
-# Save model
-joblib.dump(model, "crop_yield_model.pkl")
-joblib.dump(area_encoder, "area_encoder.pkl")
-joblib.dump(item_encoder, "item_encoder.pkl")
+# Save Model
+joblib.dump(pipeline, "models/crop_yield_model.pkl")
 
-print("\nFiles Saved:")
-print("- crop_yield_model.pkl")
-print("- area_encoder.pkl")
-print("- item_encoder.pkl")
+print("Model saved successfully!")
